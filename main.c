@@ -3,53 +3,88 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <mysql.h>
 
 #define MAXSTRING 200
 
+//prototypes
+MYSQL* startConnection(char* password);
+void clearWithEnter(void);
+char* getInput();
+
 int main(void)
 {
+    bool loop = true;
+    char* input = NULL;
+    char password[MAXSTRING] = ""; 
+
+    printf("Enter the password: ");
+
+    input = getInput(); 
+    strcpy(password, input);
+
+    MYSQL* connection = startConnection(password);
+
+    clearWithEnter();
+
+    if (connection == NULL)
+    {
+        printf("Incorrect password, program closing...\n");
+        return 1;
+    }
+
+    mysql_close(connection); 
+
+    return 0;
+}
+
+MYSQL* startConnection(char* password)
+{
     MYSQL* conn;
-    MYSQL_RES* res;
-    MYSQL_ROW row;
 
     char* server = "127.0.0.1";
     char* user = "root";
     char* database = "sakila";
 
-    char password[MAXSTRING] = ""; 
-
-    printf("Enter the password: ");
-
-    fgets(password, (MAXSTRING - 1), stdin);
-    if (password[strlen(password) - 1] == '\n')
-    {
-        password[strlen(password) - 1] = '\0';
-    }
-
     conn = mysql_init(NULL);
 
-    if (!mysql_real_connect(conn, server, 
-        user, password, database, 0, NULL, 0)) { 
+    if (!mysql_real_connect(conn, server,
+        user, password, database, 0, NULL, 0)) {
         fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
+        return NULL;
     }
 
-    if (mysql_query(conn, "show tables")) {
-        fprintf(stderr, "%s\n", mysql_error(conn));
-        exit(1);
-    }
+    printf("\nConnection Successful\n\n");
 
-    res = mysql_use_result(conn);
+    return conn;
+}
 
-    printf("MySQL Tables in mysql database:\n\n");
+//taken from my "TextBasedRPG" repo on my github 1syedbil
+void clearWithEnter(void)
+{
+    printf("\n\tPress Enter to continue");
 
-    while ((row = mysql_fetch_row(res)) != NULL)
+    char enter[MAXSTRING] = ""; 
+
+    fgets(enter, MAXSTRING, stdin); 
+
+    if (strchr(enter, '\n') != NULL)
     {
-        printf("%s \n", row[0]); 
+        system("cls");
+    }
+}
+
+char* getInput()
+{
+    char input[MAXSTRING] = ""; 
+
+    fgets(input, MAXSTRING, stdin);
+    if (input[strlen(input) - 1] == '\n')
+    {
+        input[strlen(input) - 1] = '\0';
     }
 
-    mysql_free_result(res); 
-    mysql_close(conn);
+    return input;
 }
