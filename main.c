@@ -19,6 +19,7 @@ int getId(int table, MYSQL* conn);
 void updateCustomer(MYSQL* conn); 
 bool checkAvailability(MYSQL* conn, char* inventoryId); 
 void getRentalDuration(MYSQL* conn, char* inventoryId); 
+bool checkEmail(char* email); 
 
 int main(void)
 {
@@ -90,8 +91,158 @@ int main(void)
 
 void updateCustomer(MYSQL* conn)
 {
-    char* input = NULL;  
-    char firstName[MAXSTRING] = ""; 
+    MYSQL_RES* res = NULL;
+    MYSQL_ROW row = NULL;
+    char* input = NULL;
+    int id = 0;
+    char temp[MAXSTRING] = "";
+    char firstName[MAXSTRING] = "'";
+    char lastName[MAXSTRING] = "'";
+    char email[MAXSTRING] = "'";
+    char addressId[MAXSTRING] = "";
+    char customerId[MAXSTRING] = "";
+    char query[MAXSTRING] = "UPDATE customer SET first_name =";
+    bool matchFormat = false;
+
+    id = getId(1, conn);
+    sprintf(customerId, "%d", id);
+
+    printf("Enter a first name: ");
+    input = getInput();
+    strcat(firstName, input); 
+    strcat(firstName, "',");
+    system("cls");
+
+    printf("Enter a last name: ");
+    input = getInput();
+    strcat(lastName, input);
+    strcat(lastName, "',"); 
+    system("cls");
+
+    while (!matchFormat)
+    {
+        printf("Enter an email address: ");
+        input = getInput();
+        strcpy(temp, input); 
+
+        matchFormat = checkEmail(temp);   
+        system("cls");
+    } 
+    strcat(email, temp); 
+    strcat(email, "',"); 
+
+    id = getId(4, conn);
+    sprintf(addressId, "%d", id);  
+
+    strcat(query, firstName);
+    strcat(query, "last_name =");
+    strcat(query, lastName); 
+    strcat(query, "email =");
+    strcat(query, email); 
+    strcat(query, "address_id =");
+    strcat(query, addressId); 
+    strcat(query, " WHERE customer_id =");
+    strcat(query, customerId); 
+
+    if (mysql_query(conn, query)) { 
+        fprintf(stderr, "%s\n", mysql_error(conn));
+        return;
+    }
+
+    printf("Update was successful! Here is the updated customer record:\n\n");
+
+    strcpy(query, "SELECT * FROM customer WHERE customer_id =");
+    strcat(query, customerId); 
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "%s\n", mysql_error(conn));
+        return;
+    }
+
+    res = mysql_store_result(conn); 
+
+    while (row = mysql_fetch_row(res))
+    {
+        printf("| Customer ID: %s | Store ID: %s | First Name: %s | Last Name: %s | Email: %s | Address ID: %s | Active: %s | Create Date: %s | Last Update: %s |\n\n", row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]);
+    }
+}
+
+bool checkEmail(char* email)
+{
+    int countAtSymb = 0;
+    int saveAtSymbPos = 0;
+    char* period = NULL;  
+
+    if (email[0] == ' ' || email[0] == '/' || email[0] == ':'
+        || email[0] == ';' || email[0] == '<' || email[0] == '>'
+        || email[0] == ',' || email[0] == '[' || email[0] == ']' || email[0] == '@' || email[0] == '.')
+    {
+        printf("Invalid email format.\n\n");
+        system("pause");
+
+        return false; 
+    }
+
+    if (email[(strlen(email) - 1)] == ' ' || email[(strlen(email) - 1)] == '/' || email[(strlen(email) - 1)] == ':'
+        || email[(strlen(email) - 1)] == ';' || email[(strlen(email) - 1)] == '<' || email[(strlen(email) - 1)] == '>'
+        || email[(strlen(email) - 1)] == ',' || email[(strlen(email) - 1)] == '[' || email[(strlen(email) - 1)] == ']' || email[(strlen(email) - 1)] == '@' || email[(strlen(email) - 1)] == '.') 
+    {
+        printf("Invalid email format.\n\n");
+        system("pause");
+
+        return false;
+    }
+
+    for (int i = 0; i < strlen(email); i++)
+    {
+        if (email[i] == '@')
+        {
+            countAtSymb++;
+
+            if (countAtSymb > 1) 
+            {
+                printf("Invalid email format.\n\n");
+                system("pause");
+
+                return false;
+            }
+
+            saveAtSymbPos = i; 
+        }
+
+        if (email[i] == ' ' || email[i] == '/' || email[i] == ':'
+            || email[i] == ';' || email[i] == '<' || email[i] == '>'
+            || email[i] == ',' || email[i] == '[' || email[i] == ']')
+        {
+            printf("Invalid email format.\n\n"); 
+            system("pause"); 
+
+            return false; 
+        }
+
+        if (i == (saveAtSymbPos + 1))
+        {
+            if (email[i] == '.')
+            {
+                printf("Invalid email format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+    }
+
+    period = strchr(email, '.');
+
+    if (period == NULL || period < strchr(email, '@'))  
+    {
+        printf("Invalid email format.\n\n");
+        system("pause");
+
+        return false;
+    }
+
+    return true; 
 }
 
 void addRental(MYSQL* conn)
@@ -176,11 +327,11 @@ bool checkAvailability(MYSQL* conn, char* inventoryId)
 {
     MYSQL_RES* res = NULL; 
     MYSQL_ROW row = NULL;  
-    char query[MAXSTRING] = "SELECT * FROM rental WHERE return_date IS NULL AND inventory_id =";
-    strcat(query, inventoryId);
-    strcat(query, " ORDER BY rental_id DESC LIMIT 1");
+    char returnDateQuery[MAXSTRING] = "SELECT * FROM rental WHERE return_date IS NULL AND inventory_id =";
+    strcat(returnDateQuery, inventoryId);
+    strcat(returnDateQuery, " ORDER BY rental_id DESC LIMIT 1");
 
-    mysql_query(conn, query); 
+    mysql_query(conn, returnDateQuery); 
 
     res = mysql_store_result(conn); 
 
@@ -203,6 +354,7 @@ int getId(int table, MYSQL* conn)
     char customerQuery[MAXSTRING] = "SELECT * FROM customer WHERE customer_id=";
     char inventoryQuery[MAXSTRING] = "SELECT * FROM inventory WHERE inventory_id=";
     char staffQuery[MAXSTRING] = "SELECT * FROM staff WHERE staff_id=";
+    char addressQuery[MAXSTRING] = "SELECT * FROM address WHERE address_id=";
     char query[MAXSTRING] = ""; 
     char stringId[MAXSTRING] = ""; 
 
@@ -218,6 +370,10 @@ int getId(int table, MYSQL* conn)
 
     case 3:
         strcpy(query, staffQuery); 
+        break;
+
+    case 4:
+        strcpy(query, addressQuery);
         break;
     }
 
@@ -269,6 +425,21 @@ int getId(int table, MYSQL* conn)
                 continue;
             }
             break;
+
+        case 4:
+            printf("Enter an address ID: ");
+            id = getNum(); 
+            sprintf(stringId, "%d", id); 
+            strcat(query, stringId); 
+
+            if (mysql_query(conn, query)) { 
+                fprintf(stderr, "%s\n", mysql_error(conn)); 
+                strcpy(query, staffQuery); 
+                system("pause"); 
+                system("cls"); 
+                continue;
+            }
+            break;
         }
 
         res = mysql_store_result(conn);
@@ -290,6 +461,11 @@ int getId(int table, MYSQL* conn)
             case 3:
                 strcpy(query, staffQuery);  
                 printf("A staff member corresponding with the ID you entered does not exist. Try again...\n\n");
+                break;
+
+            case 4:
+                strcpy(query, addressQuery);
+                printf("An address corresponding with the ID you entered does not exist. Try again...\n\n");
                 break;
             }
 
