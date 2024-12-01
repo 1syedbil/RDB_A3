@@ -20,6 +20,7 @@ void updateCustomer(MYSQL* conn);
 bool checkAvailability(MYSQL* conn, char* inventoryId); 
 void getRentalDuration(MYSQL* conn, char* inventoryId); 
 bool checkEmail(char* email); 
+void deleteCustomer(MYSQL* conn); 
 
 int main(void)
 {
@@ -70,6 +71,8 @@ int main(void)
             break;
 
         case 4:
+            deleteCustomer(connection);  
+            system("pause"); 
 
             break;
 
@@ -87,6 +90,84 @@ int main(void)
     mysql_close(connection); 
 
     return 0;
+}
+
+void deleteCustomer(MYSQL* conn)
+{
+    MYSQL_RES* res = NULL;
+    MYSQL_ROW row = NULL;
+    int choice = 0;
+    int id = 0;
+    char customerId[MAXSTRING] = "";
+    char query[MAXSTRING] = ""; 
+
+    id = getId(1, conn);
+    sprintf(customerId, "%d", id);
+
+    while (true) 
+    {
+        printf("Are you sure you would like to delete this customer's record? If you do then any rental and payment records associated with the customer will be deleted.\n\t1. Yes\n\t2. No\nEnter a choice (1-2): ");
+
+        choice = getNum();
+
+        switch (choice)
+        {
+        case 1:
+            strcpy(query, "SELECT * FROM rental WHERE return_date IS NULL AND customer_id =");
+            strcat(query, customerId); 
+
+            if (mysql_query(conn, query)) { 
+                fprintf(stderr, "%s\n", mysql_error(conn)); 
+                return; 
+            }
+
+            res = mysql_store_result(conn); 
+
+            if (res->row_count > 0)
+            {
+                printf("The customer you requested to delete cannot be deleted because they have yet to return all of their rented films.\n\n");
+
+                return;
+            }
+
+            strcpy(query, "DELETE FROM payment WHERE customer_id =");
+            strcat(query, customerId); 
+
+            if (mysql_query(conn, query)) {
+                fprintf(stderr, "%s\n", mysql_error(conn));
+                return;
+            }
+
+            strcpy(query, "DELETE FROM rental WHERE customer_id =");
+            strcat(query, customerId); 
+
+            if (mysql_query(conn, query)) { 
+                fprintf(stderr, "%s\n", mysql_error(conn)); 
+                return;
+            }
+
+            strcpy(query, "DELETE FROM customer WHERE customer_id =");
+            strcat(query, customerId);
+
+            if (mysql_query(conn, query)) {
+                fprintf(stderr, "%s\n", mysql_error(conn));
+                return;
+            }
+
+            printf("The customer record with ID {%s} and all its associated records have been deleted.\n\n", customerId); 
+
+            return;
+
+        case 2:
+
+            return;
+
+        default:
+            printf("Invalid menu selection.\n");
+            clearWithEnter();
+            break;
+        }
+    }
 }
 
 void updateCustomer(MYSQL* conn)
@@ -167,6 +248,7 @@ void updateCustomer(MYSQL* conn)
     }
 }
 
+//the code for this function was inspired by this youtube video: https://www.youtube.com/watch?v=ViqyHIyfHYo 
 bool checkEmail(char* email)
 {
     int countAtSymb = 0;
