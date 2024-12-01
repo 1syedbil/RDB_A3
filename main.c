@@ -16,6 +16,9 @@ char* getInput();
 int getNum(void);   
 void addRental(MYSQL* conn); 
 int getId(int table, MYSQL* conn);
+void updateCustomer(MYSQL* conn); 
+bool checkAvailability(MYSQL* conn, char* inventoryId); 
+void getRentalDuration(MYSQL* conn, char* inventoryId); 
 
 int main(void)
 {
@@ -51,9 +54,13 @@ int main(void)
         {
         case 1:
             addRental(connection); 
+            system("pause"); 
+
             break;
 
         case 2:
+            updateCustomer(connection); 
+            system("pause"); 
 
             break;
 
@@ -81,6 +88,12 @@ int main(void)
     return 0;
 }
 
+void updateCustomer(MYSQL* conn)
+{
+    char* input = NULL;  
+    char firstName[MAXSTRING] = ""; 
+}
+
 void addRental(MYSQL* conn)
 {
     MYSQL_RES* res = NULL; 
@@ -89,6 +102,7 @@ void addRental(MYSQL* conn)
     char rentalQuery[MAXSTRING] = "INSERT INTO rental(rental_date, return_date, inventory_id, customer_id, staff_id) VALUES(NOW(), NULL,";
     char customer[MAXSTRING] = "";
     char inventoryRec[MAXSTRING] = "";
+    char copy[MAXSTRING] = ""; 
     char staffMember[MAXSTRING] = "";
     int id = 0;
 
@@ -97,6 +111,14 @@ void addRental(MYSQL* conn)
 
     id = getId(2, conn);  
     sprintf(inventoryRec, "%d", id); 
+    sprintf(copy, "%d", id);  
+
+    if (!checkAvailability(conn, inventoryRec))
+    {
+        printf("The film with inventory ID {%s} is currently being rented out by someone else.\n\n", inventoryRec);
+
+        return;
+    }
 
     id = getId(3, conn);  
     sprintf(staffMember, "%d", id); 
@@ -114,7 +136,62 @@ void addRental(MYSQL* conn)
         return;
     }
 
+    if (mysql_query(conn, "SELECT * FROM rental ORDER BY rental_id DESC LIMIT 1")) {
+        fprintf(stderr, "%s\n", mysql_error(conn));
+        return;
+    }
+
+    res = mysql_store_result(conn); 
+
+    while (row = mysql_fetch_row(res))
+    {
+        printf("The following record was successfully added to the rental table:\n\n| ID: %s | Rental Date: %s | Inventory ID: %s | Customer ID: %s | Return Date: %s | Staff ID: %s | Last Update: %s |\n\n", row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
+    }
+
+    getRentalDuration(conn, copy);  
+
     return;
+}
+
+void getRentalDuration(MYSQL* conn, char* inventoryId)
+{
+    MYSQL_RES* res = NULL;
+    MYSQL_ROW row = NULL;
+    char query[MAXSTRING] = "SELECT film.rental_duration FROM film JOIN inventory ON inventory.film_id = film.film_id WHERE inventory.inventory_id =";
+    strcat(query, inventoryId);
+
+    mysql_query(conn, query); 
+
+    res = mysql_store_result(conn); 
+
+    while (row = mysql_fetch_row(res)) 
+    {
+        printf("The longest this film can be rented out for is %s days.\n\n", row[0]); 
+    }
+
+    return;
+}
+
+bool checkAvailability(MYSQL* conn, char* inventoryId)
+{
+    MYSQL_RES* res = NULL; 
+    MYSQL_ROW row = NULL;  
+    char query[MAXSTRING] = "SELECT * FROM rental WHERE return_date IS NULL AND inventory_id =";
+    strcat(query, inventoryId);
+    strcat(query, " ORDER BY rental_id DESC LIMIT 1");
+
+    mysql_query(conn, query); 
+
+    res = mysql_store_result(conn); 
+
+    if (res->row_count > 0) 
+    {
+        return false;
+    }
+    else
+    {
+        return true; 
+    }
 }
 
 int getId(int table, MYSQL* conn) 
