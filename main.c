@@ -21,6 +21,8 @@ bool checkAvailability(MYSQL* conn, char* inventoryId);
 void getRentalDuration(MYSQL* conn, char* inventoryId); 
 bool checkEmail(char* email); 
 void deleteCustomer(MYSQL* conn); 
+void viewRentalHistory(MYSQL* conn); 
+bool validateDate(char* date); 
 
 int main(void)
 {
@@ -67,6 +69,8 @@ int main(void)
             break;
 
         case 3:
+            viewRentalHistory(connection); 
+            system("pause");  
 
             break;
 
@@ -90,6 +94,152 @@ int main(void)
     mysql_close(connection); 
 
     return 0;
+}
+
+void viewRentalHistory(MYSQL* conn) 
+{
+    MYSQL_RES* res = NULL;
+    MYSQL_ROW row = NULL;  
+    bool validDate = false;
+    int id = 0;
+    char* input = NULL; 
+    char customerId[MAXSTRING] = "";
+    char date1[MAXSTRING] = ""; 
+    char date2[MAXSTRING] = "";
+    char startDate[MAXSTRING] = "'";
+    char endDate[MAXSTRING] = "'";
+    char query[MAXSTRING] = "SELECT * FROM rental WHERE customer_id =";
+
+    id = getId(1, conn); 
+    sprintf(customerId, "%d", id); 
+    strcat(query, customerId); 
+    strcat(query, " AND rental_date <=");
+
+    while (!validDate) 
+    {
+        printf("Enter a start date (the latest date you would like to see rentals from): "); 
+        input = getInput();  
+        strcpy(date1, input);  
+
+        validDate = validateDate(date1);  
+        system("cls");
+    }
+    strcat(startDate, date1); 
+    strcat(startDate, "'"); 
+
+    strcat(query, startDate);  
+    strcat(query, " AND rental_date >=");
+
+    validDate = false;  
+
+    while (!validDate)
+    {
+        printf("Enter an end date (the earliest date you would like to see rentals from): ");
+        input = getInput();
+        strcpy(date1, input);
+
+        validDate = validateDate(date1);
+        system("cls");
+    }
+    strcat(endDate, date1);
+    strcat(endDate, "'");
+
+    strcat(query, endDate);
+    strcat(query, " ORDER BY rental_date DESC");  
+
+    if (mysql_query(conn, query)) {
+        fprintf(stderr, "%s\n", mysql_error(conn));
+        return;
+    } 
+
+    res = mysql_store_result(conn); 
+
+    printf("Here are all the records within your specified date range:\n\n");
+
+    while (row = mysql_fetch_row(res))
+    {
+        printf("| ID: %s | Rental Date: %s | Inventory ID: %s | Customer ID: %s |\n\n", row[0], row[1], row[2], row[3]);
+        system("pause"); 
+    }
+}
+
+bool validateDate(char* date) 
+{
+    if (strlen(date) != 10)
+    {
+        printf("Invalid date format.\n\n");
+        system("pause");
+
+        return false;  
+    }
+
+    for (int i = 0; i < strlen(date); i++) 
+    {
+        if (i == 0 || i == 1 || i == 2 || i == 3)
+        {
+            if (date[i] != '0' && date[i] != '1' && date[i] != '2' && date[i] != '3' && date[i] != '4' && date[i] != '5' && date[i] != '6' && date[i] != '7' && date[i] != '8' && date[i] != '9')
+            {
+                printf("Invalid date format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+
+        if (i == 4)
+        {
+            if (date[i] != '-')
+            {
+                printf("Invalid date format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+
+        if (i == 5 || i == 6)
+        {
+            if (date[i] != '0' && date[i] != '1' && date[i] != '2' && date[i] != '3' && date[i] != '4' && date[i] != '5' && date[i] != '6' && date[i] != '7' && date[i] != '8' && date[i] != '9')
+            {
+                printf("Invalid date format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+
+        if (i == 7)
+        {
+            if (date[i] != '-')
+            {
+                printf("Invalid date format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+
+        if (i == 8 || i == 9)
+        {
+            if (date[i] != '0' && date[i] != '1' && date[i] != '2' && date[i] != '3' && date[i] != '4' && date[i] != '5' && date[i] != '6' && date[i] != '7' && date[i] != '8' && date[i] != '9')
+            {
+                printf("Invalid date format.\n\n");
+                system("pause");
+
+                return false;
+            }
+        }
+    }
+
+    if (date[6] == '0' || date[9] == '0')
+    {
+        printf("Invalid date format.\n\n");
+        system("pause");
+
+        return false;
+    }
+
+    return true; 
 }
 
 void deleteCustomer(MYSQL* conn)
