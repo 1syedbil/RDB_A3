@@ -1,3 +1,14 @@
+/*
+* FILE          : main.c
+* PROJECT       : Relational Databases Assignment 3
+* PROGRAMMER    : Bilal Syed
+* FIRST VERSION : 2024-11-28
+* DESCRIPTION   : This program interacts with a film rental store database through the MYSQL C library to 
+*                 perform operations like adding new rentals, updating customer information, viewing
+*                 rental history, and deleting customer records. It connects to the MySQL database using 
+*                 the password provided by the user and provides a text-based menu for various operations.
+*/
+
 #pragma warning (disable: 4996)
 
 #include <stdio.h>
@@ -96,6 +107,13 @@ int main(void)
     return 0;
 }
 
+/*
+* FUNCTION    : viewRentalHistory()
+* DESCRIPTION : This function retrieves and displays rental history for a specific customer
+*               within a date range specified by the user.
+* PARAMETERS  : MYSQL* conn - The MySQL connection object.
+* RETURNS     : void
+*/
 void viewRentalHistory(MYSQL* conn) 
 {
     MYSQL_RES* res = NULL;
@@ -163,6 +181,12 @@ void viewRentalHistory(MYSQL* conn)
     }
 }
 
+/*
+* FUNCTION    : validateDate()
+* DESCRIPTION : This function validates the date entered by the user to ensure it is in the format YYYY-MM-DD.
+* PARAMETERS  : char* date - The date entered by the user.
+* RETURNS     : bool - Returns true if the date is valid and flase if it is invalid.
+*/
 bool validateDate(char* date) 
 {
     if (strlen(date) != 10)
@@ -242,6 +266,16 @@ bool validateDate(char* date)
     return true; 
 }
 
+/*
+* FUNCTION    : deleteCustomer()
+* DESCRIPTION : This function deletes a customer record from the database after ensuring
+*               that the customer does not have any incomplete rental transactions. To
+*               delete the customer entirely, the customer's entire rental and payment 
+*               history must be deleted as well. As both the payment and rental entities 
+*               are reliant on the customer entity's existance.
+* PARAMETERS  : MYSQL* conn - The MySQL connection object.
+* RETURNS     : void
+*/
 void deleteCustomer(MYSQL* conn)
 {
     MYSQL_RES* res = NULL;
@@ -320,6 +354,12 @@ void deleteCustomer(MYSQL* conn)
     }
 }
 
+/*
+* FUNCTION    : updateCustomer()
+* DESCRIPTION : Updates customer information in the database.
+* PARAMETERS  : MYSQL* conn - The connection object for the MySQL database.
+* RETURNS     : void
+*/
 void updateCustomer(MYSQL* conn)
 {
     MYSQL_RES* res = NULL;
@@ -399,6 +439,15 @@ void updateCustomer(MYSQL* conn)
 }
 
 //the code for this function was inspired by this youtube video: https://www.youtube.com/watch?v=ViqyHIyfHYo 
+/*
+* FUNCTION    : checkEmail()
+* DESCRIPTION : Validates an email address based on specific format rules such as
+*               checking for the presence of '@' and a valid period after '@',
+*               ensuring no invalid characters are at the start or end, and
+*               no spaces or special characters appear within the email.
+* PARAMETERS  : char* email - a string representing the email to be validated.
+* RETURNS     : bool - returns true if the email is valid and false if it is invalid.
+*/
 bool checkEmail(char* email)
 {
     int countAtSymb = 0;
@@ -477,6 +526,16 @@ bool checkEmail(char* email)
     return true; 
 }
 
+/*
+* FUNCTION    : addRental()
+* DESCRIPTION : Adds a new rental record to the database by retreiving customer,
+*               inventory, and staff IDs from the user input. It then checks the 
+*               availability of the selected inventory item, and performing the 
+*               database insert. It also prints the details of the newly added 
+*               rental record.
+* PARAMETERS  : MYSQL* conn - a pointer to the MySQL database connection.
+* RETURNS     : void
+*/
 void addRental(MYSQL* conn)
 {
     MYSQL_RES* res = NULL; 
@@ -536,6 +595,14 @@ void addRental(MYSQL* conn)
     return;
 }
 
+/*
+* FUNCTION    : getRentalDuration()
+* DESCRIPTION : Retrieves and prints the rental duration for a given film
+*               based on its inventory ID from the database.
+* PARAMETERS  : MYSQL* conn - a pointer to the MySQL database connection.
+*               char* inventoryId - a string representing the inventory ID of the film.
+* RETURNS     : void
+*/
 void getRentalDuration(MYSQL* conn, char* inventoryId)
 {
     MYSQL_RES* res = NULL;
@@ -555,6 +622,15 @@ void getRentalDuration(MYSQL* conn, char* inventoryId)
     return;
 }
 
+/*
+* FUNCTION    : checkAvailability()
+* DESCRIPTION : Checks if a film's inventory item is available for rent by
+*               verifying if there is a current rental record with a NULL
+*               return date.
+* PARAMETERS  : MYSQL* conn - a pointer to the MySQL database connection.
+*               char* inventoryId - a string representing the inventory ID.
+* RETURNS     : bool - returns true if the inventory item is available and false if it is unavailable.
+*/
 bool checkAvailability(MYSQL* conn, char* inventoryId)
 {
     MYSQL_RES* res = NULL; 
@@ -577,6 +653,16 @@ bool checkAvailability(MYSQL* conn, char* inventoryId)
     }
 }
 
+/*
+* FUNCTION    : getId()
+* DESCRIPTION : Retrieves a valid ID from a specified table in the database
+*               (customer, inventory, staff, address) and returns the ID.
+*               The function prompts the user for input and checks if the
+*               record exists in the corresponding table.
+* PARAMETERS  : int table - the table number for the query (1=customer, 2=inventory, 3=staff, 4=address).
+*               MYSQL* conn - a pointer to the MySQL database connection.
+* RETURNS     : int - the ID retrieved from the database.
+*/
 int getId(int table, MYSQL* conn) 
 {
     MYSQL_RES* res = NULL;
@@ -711,6 +797,13 @@ int getId(int table, MYSQL* conn)
     }
 } 
 
+/*
+* FUNCTION    : startConnection()
+* DESCRIPTION : Establishes a connection to the MySQL database using the provided password.
+*               If the connection is successful, it returns the connection pointer.
+* PARAMETERS  : char* password - the password used for the database connection.
+* RETURNS     : MYSQL* - a pointer to the MySQL database connection if successful, NULL if failure.
+*/
 MYSQL* startConnection(char* password)
 {
     MYSQL* conn;
@@ -732,13 +825,24 @@ MYSQL* startConnection(char* password)
     return conn;
 }
 
-//taken from my "TextBasedRPG" repo on my github 1syedbil
+/*
+* FUNCTION    : clearWithEnter()
+* DESCRIPTION : Pauses the program and clears the screen, providing a clean prompt for the user.
+* PARAMETERS  : void
+* RETURNS     : void
+*/
 void clearWithEnter(void)
 {
     system("pause");
     system("cls");
 }
 
+/*
+* FUNCTION    : getInput()
+* DESCRIPTION : Reads a line of input from the user, ensuring it is null-terminated.
+* PARAMETERS  : void
+* RETURNS     : char* - returns the string input by the user.
+*/
 char* getInput()
 {
     char input[MAXSTRING] = ""; 
@@ -753,6 +857,13 @@ char* getInput()
 }
 
 //this code is derived from our first year C/C++ Programming course in the SET program
+/*
+* FUNCTION    : getNum()
+* DESCRIPTION : Prompts the user to input a positive integer, validating the input.
+*               If the input is not valid, it asks the user to try again.
+* PARAMETERS  : void
+* RETURNS     : int - the validated positive integer.
+*/
 int getNum(void)
 {
     char record[MAXSTRING] = { 0 }; 
